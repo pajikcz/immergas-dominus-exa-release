@@ -66,7 +66,11 @@ class OptionsFlow(config_entries.OptionsFlow):
                 if runtime is not None and runtime.client.owns_control and changed != runtime.connection_options:
                     errors["base"] = "release_control_first"
                 else:
-                    return self.async_create_entry(title="", data={**user_input, CONF_ROOM_SOURCE_MODE:
+                    # The options form does not expose all persisted local requests.
+                    # Preserve hidden runtime values, not omitted optional mappings.
+                    preserved = {k: v for k, v in self.config_entry.options.items()
+                                 if k in RUNTIME_OPTIONS and k not in user_input}
+                    return self.async_create_entry(title="", data={**preserved, **user_input, CONF_ROOM_SOURCE_MODE:
                         self.config_entry.options.get(CONF_ROOM_SOURCE_MODE, DEFAULT_ROOM_SOURCE_MODE)})
         options = user_input if user_input is not None else self.config_entry.options
         schema = vol.Schema({

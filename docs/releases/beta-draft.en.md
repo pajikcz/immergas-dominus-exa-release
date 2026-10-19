@@ -19,7 +19,8 @@ replacement for boiler safety functions. Other installations are not yet validat
 - One room target using CAR measurement; room-target writes are enabled
   separately, never automatically.
 - Both water settings can be saved under HA ownership in OFF. DHW in OFF is saved
-  only in HA and applied after the next explicit Summer/Winter selection.
+  only in HA and applied after the next explicit Summer/Winter selection. Saving
+  other integration options preserves this pending target.
 - Control permissions default to disabled; startup/reconnect never take ownership.
 
 Summer permits DHW only; Winter permits heating and DHW. Changing a limit never

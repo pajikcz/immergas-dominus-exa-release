@@ -80,7 +80,8 @@ foreign ownership does not permit writes.
   or a heat request. The number exposes the requested value with `pending_value`,
   `reported_value` and `application_status`. Display it separately from the actual
   reported boiler target; saving locally is not a boiler confirmation.
-- A saved DHW request survives restart but is applied only after the next **explicit
+- A saved DHW request survives restart and saving other integration options; it is
+  applied only after the next **explicit
   Summer/Winter selection**, through either mode selector. Startup, polling,
   reconnect, takeover, OFF and CAR selection do not apply it. An active-mode edit
   supersedes an older saved request.

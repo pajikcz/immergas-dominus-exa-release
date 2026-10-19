@@ -19,7 +19,8 @@ bezpečnostních funkcí kotle. Kompatibilita s dalšími instalacemi není potv
 - Jeden pokojový cíl s měřením z CAR; zápis pokojového cíle se povoluje
   samostatně, nikoli automaticky.
 - Vodní nastavení lze uložit i v OFF při vlastním HA řízení. TUV v OFF se uloží
-  pouze v HA a uplatní až po další výslovné volbě Léto/Zima.
+  pouze v HA a uplatní až po další výslovné volbě Léto/Zima. Uložení ostatních
+  možností integrace tento čekající cíl zachová.
 - Oprávnění jsou standardně vypnutá; při startu/reconnectu se nepřebírá řízení.
 
 Léto dovoluje pouze TUV, Zima vytápění i TUV. Změna limitu sama nemění režim.
