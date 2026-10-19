@@ -15,6 +15,15 @@ Licensing and validation review must be completed before a public beta release.
 - Adjustable heating-water maximum and DHW target in every HA operating mode.
 - English/Czech entity labels and redacted diagnostics.
 
+## Dashboard preview
+
+Illustrative design with **simulated data**, not a live HA screenshot or a dashboard
+installed by this integration. The native YAML example below is a separate, simpler UI.
+
+![Illustrative dashboard with simulated data](docs/images/dashboard-desktop.png)
+
+[Mobile illustration](docs/images/dashboard-mobile.png) · [Offline HTML concept](examples/dashboard-concept.html)
+
 ## Installation
 
 [Network setup and first use: English](docs/getting-started.en.md) · [Česky](docs/getting-started.cs.md)
