@@ -1,0 +1,149 @@
+{
+  "title": "Immergas Dominus EXA",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Immergas Dominus EXA",
+        "description": "Pouze důvěryhodná LAN. Ověření pouze čte, nezapíná topení.",
+        "data": {
+          "host": "IPv4",
+          "mac": "MAC",
+          "port": "Port",
+          "password": "Heslo (volitelné)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nelze ověřit komunikaci EXA",
+      "invalid_settings": "Neplatná IPv4, MAC nebo port"
+    },
+    "abort": {
+      "already_configured": "Zařízení již je nastavené"
+    }
+  },
+  "options": {
+    "error": {"release_control_first": "Před změnou připojení nebo oprávnění zvolte OFF a vraťte řízení CAR.", "invalid_room_target": "Zadejte konečnou pokojovou teplotu v rozsahu5–35°C."},
+    "step": {
+      "init": {
+        "title": "Oprávnění ovládání",
+        "description": "Ovládání je výchozí vypnuté. Léto povoluje plynovou TUV, Zima topení I plynovou TUV. Nezávislé vypnutí TUV a Antigelo nejsou ověřené. Vypnutí HA není ověřený fail-safe. Kompenzace je bez zvláštního povolení pouze simulovaná. Zápis vyžaduje výslovné převzetí, Zimu a zapnutou nativní pokojovou modulaci; nastavení se samo nemění.",
+        "data": {
+          "scan_interval": "Interval čtení (s)",
+          "allow_controls": "Povolit výslovné ovládací povely",
+          "allow_gas_dhw": "Povolit Léto/Zimu včetně plynové TUV",
+          "room_temperature_source": "Pokojové čidlo Dole (°C; nepovinné)",
+          "upstairs_temperature_source": "Pokojové čidlo Nahoře (°C; nepovinné)",
+          "room_source_max_age": "Nejvyšší povolené stáří teploty z HA (s)",
+          "desired_room_target": "Požadovaná pokojová teplota (°C)",
+          "allow_compensation_write": "Povolit zápis korigovaného cíle (vypnuto = jen simulace)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ha_room_temperature": {"name": "Vybraná pokojová teplota"},
+      "desired_room_target": {"name": "Požadovaná pokojová teplota"},
+      "compensated_room_target": {"name": "Vypočtený cíl regulátoru"},
+      "compensation_status": {"name": "Stav kompenzace"},
+      "heating_water": {
+        "name": "Teplota topné vody"
+      },
+      "return_water": {
+        "name": "Teplota zpátečky"
+      },
+      "dhw_water": {
+        "name": "Teplota TUV"
+      },
+      "dhw_target": {
+        "name": "Cíl TUV (pouze čtení)"
+      },
+      "room_temperature": {
+        "name": "Pokojová teplota"
+      },
+      "room_target": {
+        "name": "Pokojový cíl (pouze čtení)"
+      },
+      "ch_setpoint": {
+        "name": "Hlášený požadavek vytápění"
+      },
+      "max_flow": {
+        "name": "Maximální teplota topné vody"
+      },
+      "otc_setpoint": {
+        "name": "Cíl klimatické křivky"
+      },
+      "ch_min": {
+        "name": "Dolní mez vytápění"
+      },
+      "ch_max": {
+        "name": "Horní mez vytápění"
+      },
+      "dhw_min": {
+        "name": "Dolní mez TUV"
+      },
+      "dhw_max": {
+        "name": "Horní mez TUV"
+      },
+      "modulation": {
+        "name": "Modulace"
+      },
+      "control_timer": {
+        "name": "Časovač řízení"
+      },
+      "mode": {
+        "name": "Provozní režim"
+      }
+    },
+    "binary_sensor": {
+      "heating_enabled": {
+        "name": "Vytápění povoleno"
+      },
+      "dhw_enabled": {
+        "name": "TUV povolena"
+      },
+      "heating_active": {
+        "name": "Vytápění aktivní"
+      },
+      "dhw_active": {
+        "name": "TUV aktivní"
+      },
+      "flame": {
+        "name": "Hlášený plamen"
+      },
+      "dominus_active": {
+        "name": "Dominus aktivní"
+      },
+      "thermostat_input": {
+        "name": "Termostatový vstup"
+      }
+    },
+    "select": {
+      "room_source_mode": {"name": "Řídicí pokojové čidlo", "state": {"downstairs": "Dole", "upstairs": "Nahoře", "car": "CAR"}},
+      "controller_mode": {"name": "Řízení kotle", "state": {"local": "CAR", "off": "OFF", "summer": "Léto", "winter": "Zima"}},
+      "mode": {
+        "name": "Provozní režim",
+        "state": {
+          "off": "Vypnuto",
+          "winter": "Zima (topení + TUV)",
+          "summer": "Léto (TUV)",
+          "antifreeze": "Protimrazový — zatím blokováno"
+        }
+      },
+      "control_owner": {
+        "name": "Vlastník řízení",
+        "state": {
+          "local": "Místní regulátor / CAR",
+          "dominus": "Dominus"
+        }
+      }
+    },
+    "number": {
+      "dhw_target_control": {"name": "Požadovaná teplota TUV"},
+      "desired_room_target": {"name": "Požadovaná pokojová teplota"},
+      "max_flow": {
+        "name": "Maximální teplota topné vody"
+      }
+    }
+  }
+}

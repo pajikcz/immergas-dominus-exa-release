@@ -1,0 +1,67 @@
+# Manual example only. Replace every entity ID with the actual registered ID.
+# No dashboard is created automatically. Controls are locked by default.
+title: Dominus
+path: dominus-test
+cards:
+  - type: entities
+    title: Řízení a ovladače
+    entities:
+      - entity: select.replace_with_boiler_control
+        name: CAR / OFF / Léto / Zima
+      - entity: number.replace_with_dhw_target_control
+        name: Uložený / požadovaný cíl TUV
+      - entity: sensor.replace_with_dhw_target_read_only
+        name: Cíl TUV hlášený kotlem
+      - entity: sensor.replace_with_dhw_temperature
+        name: Skutečná teplota TUV
+      - entity: number.replace_with_maximum_heating_water_temperature
+        name: Maximální teplota otopné vody
+      - entity: sensor.replace_with_heating_water_temperature
+        name: Skutečná otopná voda
+  - type: markdown
+    content: >-
+      Léto dovoluje pouze TUV, Zima topení i TUV. Oba vodní limity jsou při vlastním
+      řízení HA nastavitelné i v OFF; samotná změna režim nepřepne. TUV uložená v OFF
+      čeká v HA na příští výslovnou volbu Léto/Zima a není potvrzeným cílem kotle.
+      V CAR jsou ovladače zamčené. Předání řízení na CAR probíhá přes OFF;
+      převzetí do HA vyžaduje předchozí OFF. Frýz není ověřený a není dostupný.
+      Pokojová kompenzace je standardně jen náhled; skutečný zápis se povoluje zvlášť.
+      Pro pokojové měření zvolte CAR.
+      CAR jako čidlo neznamená předání řízení na nástěnný CAR.
+  - type: entities
+    title: Pokojové řízení podle CAR
+    entities:
+      - entity: select.replace_with_room_temperature_source
+        name: Zdroj měření — zvolte CAR
+      - number.replace_with_desired_room_temperature
+      - sensor.replace_with_room_temperature
+      - sensor.replace_with_room_target
+      - sensor.replace_with_compensation_status
+  - type: history-graph
+    title: Pokojové teploty a cíle
+    hours_to_show: 6
+    entities:
+      - sensor.replace_with_room_temperature
+      - sensor.replace_with_desired_room_temperature
+  - type: entities
+    title: Diagnostika
+    entities:
+      - sensor.replace_with_heating_water_temperature
+      - sensor.replace_with_return_water_temperature
+      - sensor.replace_with_dhw_temperature
+      - sensor.replace_with_room_temperature
+      - sensor.replace_with_room_target
+      - sensor.replace_with_reported_heating_setpoint
+      - sensor.replace_with_climatic_curve_setpoint
+      - sensor.replace_with_modulation
+      - binary_sensor.replace_with_flame_reported
+      - binary_sensor.replace_with_heating_active
+      - binary_sensor.replace_with_dhw_active
+      - binary_sensor.replace_with_thermostat_input
+  - type: history-graph
+    title: Průběh teplot
+    hours_to_show: 1
+    entities:
+      - sensor.replace_with_heating_water_temperature
+      - sensor.replace_with_return_water_temperature
+      - sensor.replace_with_dhw_temperature

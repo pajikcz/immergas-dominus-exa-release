@@ -1,0 +1,149 @@
+{
+  "title": "Immergas Dominus EXA",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Immergas Dominus EXA",
+        "description": "Private LAN only. Validation only reads; it never enables heating.",
+        "data": {
+          "host": "IPv4",
+          "mac": "MAC",
+          "port": "Port",
+          "password": "Password (optional)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot verify EXA communication",
+      "invalid_settings": "Invalid IPv4, MAC or port"
+    },
+    "abort": {
+      "already_configured": "Device already configured"
+    }
+  },
+  "options": {
+    "error": {"release_control_first": "Select OFF and return control to CAR before changing connection/control options.", "invalid_room_target": "Enter a finite room temperature within5–35°C."},
+    "step": {
+      "init": {
+        "title": "Control permissions",
+        "description": "Controls are OFF by default. Summer enables gas DHW; Winter enables CH AND gas DHW. Independent DHW-off and Antifreeze are not commissioned. Stopping HA is NOT a tested fail-safe. Compensation is simulation-only unless separately allowed. Writes require explicit takeover, Winter and enabled native room modulation; no settings are changed automatically.",
+        "data": {
+          "scan_interval": "Polling interval (s)",
+          "allow_controls": "Allow explicit control commands",
+          "allow_gas_dhw": "Permit Summer/Winter including gas DHW",
+          "room_temperature_source": "Downstairs room sensor (Celsius; optional)",
+          "upstairs_temperature_source": "Upstairs room sensor (Celsius; optional)",
+          "room_source_max_age": "Maximum age of HA temperature (s)",
+          "desired_room_target": "Desired room temperature (°C)",
+          "allow_compensation_write": "Allow compensated target writes (OFF = simulation only)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ha_room_temperature": {"name": "Selected room temperature"},
+      "desired_room_target": {"name": "Desired room temperature"},
+      "compensated_room_target": {"name": "Calculated controller target"},
+      "compensation_status": {"name": "Compensation status"},
+      "heating_water": {
+        "name": "Heating water temperature"
+      },
+      "return_water": {
+        "name": "Return water temperature"
+      },
+      "dhw_water": {
+        "name": "DHW temperature"
+      },
+      "dhw_target": {
+        "name": "DHW target (read only)"
+      },
+      "room_temperature": {
+        "name": "Room temperature"
+      },
+      "room_target": {
+        "name": "Room target (read only)"
+      },
+      "ch_setpoint": {
+        "name": "Reported heating setpoint"
+      },
+      "max_flow": {
+        "name": "Maximum heating water temperature"
+      },
+      "otc_setpoint": {
+        "name": "Climatic curve setpoint"
+      },
+      "ch_min": {
+        "name": "Heating lower bound"
+      },
+      "ch_max": {
+        "name": "Heating upper bound"
+      },
+      "dhw_min": {
+        "name": "DHW lower bound"
+      },
+      "dhw_max": {
+        "name": "DHW upper bound"
+      },
+      "modulation": {
+        "name": "Modulation"
+      },
+      "control_timer": {
+        "name": "Control timer"
+      },
+      "mode": {
+        "name": "Operating mode"
+      }
+    },
+    "binary_sensor": {
+      "heating_enabled": {
+        "name": "Heating enabled"
+      },
+      "dhw_enabled": {
+        "name": "DHW enabled"
+      },
+      "heating_active": {
+        "name": "Heating active"
+      },
+      "dhw_active": {
+        "name": "DHW active"
+      },
+      "flame": {
+        "name": "Flame reported"
+      },
+      "dominus_active": {
+        "name": "Dominus active"
+      },
+      "thermostat_input": {
+        "name": "Thermostat input"
+      }
+    },
+    "select": {
+      "room_source_mode": {"name": "Room temperature source", "state": {"downstairs": "Downstairs", "upstairs": "Upstairs", "car": "CAR"}},
+      "controller_mode": {"name": "Boiler control", "state": {"local": "CAR", "off": "OFF", "summer": "Summer", "winter": "Winter"}},
+      "mode": {
+        "name": "Operating mode",
+        "state": {
+          "off": "Off",
+          "winter": "Winter (CH + DHW)",
+          "summer": "Summer (DHW)",
+          "antifreeze": "Antifreeze — not commissioned"
+        }
+      },
+      "control_owner": {
+        "name": "Control owner",
+        "state": {
+          "local": "Local controller / CAR",
+          "dominus": "Dominus"
+        }
+      }
+    },
+    "number": {
+      "dhw_target_control": {"name": "DHW target"},
+      "desired_room_target": {"name": "Desired room temperature"},
+      "max_flow": {
+        "name": "Maximum heating water temperature"
+      }
+    }
+  }
+}
