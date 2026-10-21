@@ -4,7 +4,7 @@ Unofficial Home Assistant integration for the **6-byte EXA protocol**, using an
 existing Dominus module and CAR controller. **Not compatible with the Magis Modbus map.**
 
 **Unpublished experimental release candidate.** Not distributed through HACS.
-Licensing and validation review must be completed before a public beta release.
+MIT licensed; validation and final publication review remain required before a public beta release.
 
 ## Features
 
@@ -57,6 +57,13 @@ The installation's private dashboard and visual configuration are not included.
 
 - [Configuration, controls and safety](docs/configuration.md)
 - **Unpublished beta draft**: [Česky](docs/releases/beta-draft.cs.md) · [English](docs/releases/beta-draft.en.md)
+
+## License and acknowledgements
+
+[MIT](LICENSE) © 2026 pajikcz. See [third-party notices](THIRD_PARTY_NOTICES.md)
+for JoTu's upstream MIT notice and protocol-source acknowledgements.
+Not affiliated with or endorsed by Immergas; manufacturer materials and trademarks
+are not licensed by this project.
 
 ## Development
 
