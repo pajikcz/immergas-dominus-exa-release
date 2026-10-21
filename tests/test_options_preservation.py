@@ -44,6 +44,14 @@ class OptionsPreservationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["scan_interval"], 90)
         self.assertEqual(result["room_temperature_source_mode"], "car")
 
+    async def test_saved_control_intent_survives_options_form(self):
+        data = self.setup_flow()
+        saved = {"owner": "dominus", "mode": "winter", "max_flow": 45,
+                 "dhw_target": 40, "blocked": True}
+        self.flow.config_entry.options["restore_control"] = saved
+        result = await self.submit(data)
+        self.assertEqual(result["restore_control"], saved)
+
     async def test_no_pending_target_is_invented(self):
         data = self.setup_flow(include_pending=False)
         result = await self.submit(data)

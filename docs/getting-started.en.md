@@ -115,6 +115,22 @@ Do not guess native room-control settings. Outage behavior is not universally
 validated: stopping HA writes may not stop the boiler. Know the manufacturer's
 normal local stop procedure; do not cut power to interrupt required pump/fan run-on.
 
+## Remembering HA / CAR after an outage
+
+A successful new HA choice saves the confirmed mode and known water targets.
+After reconnection or an HA restart, the integration attempts to restore that
+choice; this can restart heating/DHW. Explicitly select HA once after installing
+this change: old telemetry is not treated as permission. Selecting CAR cancels
+recovery even if the release command fails.
+
+Recovery waits for foreign sessions, active local CAR modes, timers, missing
+permissions or invalid regulation inputs. It never forces local CAR to OFF.
+An uncertain write blocks recovery across restarts until the actual state is
+inspected and a new deliberate ownership/panel choice is made. Compensation sensor
+attributes `requested_control` / `control_restore_status` distinguish intent from
+actual control; HA cannot control the boiler during a real outage.
+[Details](configuration.md#remembering-the-last-ha--car-choice).
+
 ## Troubleshooting without turning heating on
 
 | Symptom | Check |

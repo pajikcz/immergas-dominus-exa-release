@@ -43,7 +43,9 @@ The installation's private dashboard and visual configuration are not included.
 - Saving a water setting never starts heating or changes the operating mode.
   **Summer permits DHW only; Winter permits radiators and DHW.** In OFF, a DHW
   request is saved in HA and applied only after an explicit Summer/Winter selection.
-- No automatic takeover or heating restoration at startup, reload or reconnect.
+- A new explicit HA choice is remembered and [restored after reconnect/restart](docs/configuration.md#remembering-the-last-ha--car-choice),
+  subject to fresh safety checks. Selecting CAR cancels recovery. Restoration can
+  start heating/DHW; foreign sessions, active local CAR and uncertain writes block it.
   Invalid inputs stop further control writes, **not necessarily the boiler**.
   This integration is not a safety interlock or a guaranteed fallback controller.
 - Room compensation requires the existing native room sensor and modulation to
@@ -56,6 +58,7 @@ The installation's private dashboard and visual configuration are not included.
 ## Documentation
 
 - [Configuration, controls and safety](docs/configuration.md)
+- [Validation results and scope](docs/validation.md)
 - **Unpublished beta draft**: [Česky](docs/releases/beta-draft.cs.md) · [English](docs/releases/beta-draft.en.md)
 
 ## License and acknowledgements

@@ -116,6 +116,21 @@ Nastavení nativní pokojové regulace se nesmí měnit odhadem. Výpadkové cho
 univerzálně ověřené: zastavení zápisů HA nemusí znamenat vypnutí kotle. Připravte
 si běžný místní způsob zastavení podle výrobce; neodpojujte napájení kvůli doběhům.
 
+## Poslední volba HA / CAR po výpadku
+
+Nová úspěšná volba HA se ukládá spolu s potvrzeným režimem a známými vodními cíli.
+Po návratu spojení i restartu HA se integrace pokusí tuto volbu obnovit; může tím
+znovu spustit topení/TUV. Po instalaci změny je nutná jedna výslovná volba HA,
+staré odečty zařízení se za souhlas nepovažují. Ruční CAR obnovování zruší i při
+neúspěšném odeslání povelu.
+
+Obnova vyčká při cizí session, aktivním místním režimu CAR, časovači, chybějícím
+oprávnění nebo neplatném teplotním vstupu pro regulaci. CAR automaticky nevypíná.
+Nejistý zápis obnovu zablokuje i přes restart; je nutná kontrola skutečného stavu
+a nová vědomá volba řízení/režimu. Přání a stav obnovy jsou v atributech senzoru
+kompenzace `requested_control` / `control_restore_status`; nejde o potvrzení, že
+HA ovládá kotel během výpadku. [Podrobnosti](configuration.md#remembering-the-last-ha--car-choice).
+
 ## Když se nelze připojit
 
 | Projev | Co zkontrolovat bez zapínání topení |

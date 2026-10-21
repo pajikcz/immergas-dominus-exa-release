@@ -2,7 +2,7 @@
 
 [Back to README](../README.md) · [Getting started](getting-started.en.md) · [Česky](getting-started.cs.md)
 
-This guide describes the current, unpublished release candidate.
+This guide describes current `main`, including changes after release v0.1.1.
 The documented beta workflow uses **CAR as the room-temperature source**. It is
 operating documentation, not an instruction to test an unattended boiler.
 
@@ -41,6 +41,36 @@ it does not restore a previous CAR program.
 A new mode is displayed as confirmed only after its independent device readback.
 Commands may wait for a poll already using the shared connection. Pending commands
 block simultaneous control changes. Failed/uncertain writes are not blindly retried.
+
+### Remembering the last HA / CAR choice
+
+A successful new HA ownership/panel choice saves the confirmed operating mode and
+known heating-water/DHW targets locally in the config entry (`restore_control`).
+Later confirmed mode/water edits update that request. The desired room target and
+measurement-source choice already persist independently. Existing installations
+without this saved choice do **not** infer permission from old telemetry: select HA
+explicitly once after installing this change.
+
+After a lost connection or HA restart/reload, a successful complete poll attempts
+to restore the saved HA choice. Recovery takes ownership in OFF, restores the known
+water limit, then the chosen mode and previously confirmed active DHW target.
+With room-target writes enabled, Winter additionally requires valid recent input;
+normal compensation then applies the current saved desired room target. Recovery
+can start heating/DHW, briefly at a previous target during the mode transition.
+
+Selecting CAR cancels the saved HA request **before** device I/O, even if that
+release fails. Actual device state and saved intent remain distinct; no requested
+value is fabricated as a readback. The compensation/measurement sensor attributes
+`requested_control` and `control_restore_status` expose intent and recovery status.
+
+Recovery is attempted at polling cadence, not in a tight retry loop. It waits when
+controls/gas permission is missing, a timer is active, another client owns control,
+local CAR is in an active mode, or required temperature input is invalid. It never
+forces local CAR to OFF or steals another session. An uncertain restoration write
+or cancellation persistently blocks automatic recovery, including after restart;
+inspect the actual state and make a new deliberate ownership/panel choice.
+Thus a brief read timeout no longer discards the user's selection, but this is not
+an unconditional takeover or a guarantee of control during an outage.
 
 ## CAR measurement and the room target
 
@@ -103,9 +133,9 @@ close that session; another client, including the official phone app, may be una
 to connect simultaneously.
 
 A failed complete telemetry read may be retried once through a new identity-validated
-connection. No partial snapshot is published. Losing an owned connection disarms
-room-target writes even if reading recovers. Startup, reload and reconnect never
-silently take ownership, restore heating or automatically re-arm a lost lease.
+connection. No partial snapshot is published. Losing an owned connection temporarily disarms
+room-target writes. With a saved HA choice, startup, reload and reconnect use the
+guarded restoration described above; without saved intent, they remain read-only.
 
 **Stopping further writes is not a guaranteed boiler shutdown.** The last target
 may remain effective. Closing HA closes transport without a hidden OFF command.
@@ -126,6 +156,6 @@ entity is exposed. CAR temperature's `observed_at` records the successful device
 including unchanged values, not the physical sensor's sampling time. Use it rather
 than frontend-cached state timestamps when displaying CAR data age.
 
-Antifreeze, cooling, independent DHW-off, service/reset, generic register writes and
-automatic recovery of lost ownership are not implemented. Do not expose TCP port
+Antifreeze, cooling, independent DHW-off, service/reset and generic register writes
+are not implemented. Do not expose TCP port
 2000 publicly. Keep credentials, raw logs and private HA mappings outside Git.

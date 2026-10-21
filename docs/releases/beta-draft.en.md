@@ -3,7 +3,8 @@
 [Česky](beta-draft.cs.md) · [Getting started](../getting-started.en.md)
 
 **Draft for approval only.** This is not a published release or an announcement of
-public availability. The public beta version/tag and license have not been selected.
+public availability. The public beta version/tag has not been selected. License: MIT,
+with the complete upstream notice in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
 
 ## Intended audience
 
@@ -21,7 +22,13 @@ replacement for boiler safety functions. Other installations are not yet validat
 - Both water settings can be saved under HA ownership in OFF. DHW in OFF is saved
   only in HA and applied after the next explicit Summer/Winter selection. Saving
   other integration options preserves this pending target.
-- Control permissions default to disabled; startup/reconnect never take ownership.
+- Control permissions default to disabled. A new confirmed HA choice saves control
+  intent; after reconnection/restart the integration attempts to restore it and known
+  water targets. This can restart heating/DHW. Without saved intent it does not take
+  ownership. Selecting CAR cancels recovery; foreign sessions, active local CAR,
+  timers, missing permissions or invalid inputs block it. An uncertain write blocks
+  recovery across restarts until the state is inspected and a new deliberate user
+  choice is made.
 
 Summer permits DHW only; Winter permits heating and DHW. Changing a limit never
 selects a mode. Physical CAR may remain locally OFF while providing temperature in

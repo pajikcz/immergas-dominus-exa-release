@@ -498,14 +498,14 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         await setup_module._reload(hass, entry)
         hass.config_entries.async_reload.assert_awaited_once_with("fixture")
 
-    async def test_lease_loss_disarms_and_does_not_retake(self):
+    async def test_lease_loss_without_saved_intent_disarms_and_does_not_retake(self):
         coordinator, client = self.setup_coordinator(live=True)
-        await coordinator.command("take")
+        coordinator._writes_armed = True  # Legacy session without persisted intent.
         coordinator._connection_lost()
         client.values["mode"] = "winter"
         result = await coordinator._async_update_data()
         self.assertEqual(result.values["compensation_status"], "explicit_takeover_required")
-        self.assertEqual(client.commands, [("take", None)])
+        self.assertEqual(client.commands, [])
 
 
 if __name__ == "__main__":

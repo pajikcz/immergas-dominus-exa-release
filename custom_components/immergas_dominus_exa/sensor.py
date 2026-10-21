@@ -43,7 +43,9 @@ class ValueSensor(DominusEntity, SensorEntity):
         if self.key in {"compensation_status", "ha_room_temperature"}:
             return {"last_error": self.coordinator.compensation_error,
                     "source_age_seconds": self.coordinator.source_age_seconds,
-                    "source_selection": self.coordinator.data.values.get("room_source_mode") if self.coordinator.data else None}
+                    "source_selection": self.coordinator.data.values.get("room_source_mode") if self.coordinator.data else None,
+                    "requested_control": getattr(self.coordinator, "restore_choice", {}),
+                    "control_restore_status": getattr(self.coordinator, "restore_status", "not_requested")}
         return None
 
     @property

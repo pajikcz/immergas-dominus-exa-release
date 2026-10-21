@@ -1,4 +1,4 @@
-"""One shared poll; compensation is opt-in, explicitly armed and never takes over."""
+"""Shared polling, guarded compensation and restoration of saved user intent."""
 from datetime import datetime, timedelta, timezone
 import asyncio
 import logging
@@ -11,7 +11,7 @@ from .const import (CONF_COMPENSATION_WRITE, CONF_CONTROLS, CONF_INTERVAL,
                     CONF_SOURCE_MAX_AGE, DEFAULT_SOURCE_MAX_AGE,
                     CONF_ROOM_SOURCE_UPSTAIRS, CONF_ROOM_SOURCE_MODE,
                     DEFAULT_ROOM_SOURCE_MODE, ROOM_SOURCE_MODES, RUNTIME_OPTIONS,
-                    CONF_PENDING_DHW)
+                    CONF_PENDING_DHW, CONF_RESTORE_CONTROL)
 from .temperature_input import preview_compensated_target, preview_measurement
 
 
@@ -27,6 +27,8 @@ class DominusCoordinator(DataUpdateCoordinator):
         self.source_age_seconds = None
         self._writes_armed = False
         self._source_write_pending = False
+        self._restore_pending = self.restore_choice.get("owner") == "dominus"
+        self.restore_status = "pending" if self._restore_pending else "not_requested"
         self.connection_options = {k: v for k, v in entry.options.items() if k not in RUNTIME_OPTIONS}
         self.interval = entry.options.get(CONF_INTERVAL, DEFAULT_INTERVAL)
         super().__init__(hass, logging.getLogger(__name__), config_entry=entry,
@@ -35,8 +37,134 @@ class DominusCoordinator(DataUpdateCoordinator):
 
     def _connection_lost(self):
         self._writes_armed = False
-        self.compensation_error = "Control lease lost; explicit takeover required"
-        self.async_set_update_error(UpdateFailed("Dominus connection/control lease lost; no automatic takeover"))
+        self._restore_pending = self.restore_choice.get("owner") == "dominus"
+        self.restore_status = "pending" if self._restore_pending else "not_requested"
+        self.compensation_error = "Connection lost; saved HA choice awaits recovery" if self._restore_pending else "Control lease lost; explicit takeover required"
+        self.async_set_update_error(UpdateFailed("Dominus connection/control lease lost"))
+
+    @property
+    def restore_choice(self):
+        value = self.entry.options.get(CONF_RESTORE_CONTROL, {})
+        return dict(value) if isinstance(value, dict) else {}
+
+    def _save_restore_choice(self, choice):
+        self.hass.config_entries.async_update_entry(
+            self.entry, options={**self.entry.options, CONF_RESTORE_CONTROL: choice})
+
+    def _remember_choice(self, action, value, confirmed):
+        """Persist only verified user actions; telemetry never replaces intent."""
+        if action == "release" or (action == "panel_mode" and value == "local"):
+            return  # Already cancelled before I/O, even if release failed.
+        choice = self.restore_choice
+        if action == "take" or action == "panel_mode":
+            choice = {"owner": "dominus", "mode": confirmed.values.get("mode")}
+            # Save known water settings at selection, not arbitrary future polls.
+            values = {**(self.data.values if self.data else {}), **confirmed.values}
+            for key, lo, hi in (("max_flow", 20, 85), ("dhw_target", 10, 60)):
+                target = values.get(key)
+                if type(target) is int and lo <= target <= hi:
+                    choice[key] = target
+        elif choice.get("owner") != "dominus":
+            return
+        elif action in {"off", "summer", "winter"}:
+            choice["mode"] = confirmed.values.get("mode")
+        elif action in {"max_flow", "dhw_target"}:
+            choice[action] = confirmed.values.get(action)
+        else:
+            return
+        choice.pop("blocked", None)
+        self._save_restore_choice(choice)
+        self._restore_pending = False
+        self.restore_status = "restored"
+
+    async def _restore_saved_choice(self, snapshot):
+        """One guarded attempt per successful poll; never steal a foreign lease.
+
+        Existing installations without saved intent remain read-only on recovery.
+        Uncertain writes latch persistently: fresh reads do not prove authority.
+        """
+        choice = self.restore_choice
+        if not self._restore_pending or choice.get("owner") != "dominus":
+            return snapshot
+        if self.command_in_progress is not None:
+            return snapshot
+        self.restore_status = "pending"
+        mode = choice.get("mode")
+        if choice.get("blocked"):
+            self.restore_status = "blocked_uncertain_write"
+            return snapshot
+        if not self.client.allow_controls or not self.entry.options.get(CONF_CONTROLS, False):
+            self.restore_status = "controls_disabled"
+            return snapshot
+        if not isinstance(mode, str) or mode not in {"off", "summer", "winter"}:
+            self.restore_status = "invalid_saved_mode"
+            return snapshot
+        for key, lo, hi in (("max_flow", 20, 85), ("dhw_target", 10, 60)):
+            target = choice.get(key)
+            if target is not None and (type(target) is not int or not lo <= target <= hi):
+                self.restore_status = "invalid_saved_target"
+                return snapshot
+        if mode != "off" and not self.client.allow_gas_dhw:
+            self.restore_status = "gas_permission_required"
+            return snapshot
+        if snapshot.values.get("control_timer") != 0:
+            self.restore_status = "timer_active_or_unknown"
+            return snapshot
+        if not self.client.owns_control:
+            if snapshot.values.get("dominus_active") is not False:
+                self.restore_status = "foreign_or_unknown_owner"
+                return snapshot
+            if snapshot.values.get("mode") != "off":
+                self.restore_status = "local_active_mode"
+                return snapshot
+        if mode == "winter" and self.entry.options.get(CONF_COMPENSATION_WRITE, False):
+            if self._calculate(snapshot, datetime.now(timezone.utc)) != "simulation_ready":
+                self.restore_status = "temperature_input_invalid"
+                return snapshot
+        self.command_in_progress = "restore"
+        self.async_update_listeners()
+        try:
+            if not self.client.owns_control:
+                await self.client.command("take")  # Rechecks OFF/timer/foreign lease.
+            target = choice.get("max_flow")
+            if target is not None and snapshot.values.get("max_flow") != target:
+                await self.client.command("max_flow", target)
+            if snapshot.values.get("mode") != mode:
+                await self.client.command(mode)
+            target = choice.get("dhw_target")
+            if target is not None and mode in {"summer", "winter"} and snapshot.values.get("dhw_target") != target:
+                await self.client.command("dhw_target", target)
+            # A complete read, not an ACK or the saved request, is the UI state.
+            snapshot = await self.client.read_snapshot()
+            if not self.client.owns_control or snapshot.values.get("mode") != mode:
+                raise DominusError("Restored control was not confirmed")
+            for key in ("max_flow", "dhw_target"):
+                if key == "dhw_target" and mode == "off":
+                    continue
+                if choice.get(key) is not None and snapshot.values.get(key) != choice[key]:
+                    raise DominusError("Restored water target was not confirmed: " + key)
+            self._restore_pending = False
+            self.restore_status = "restored"
+            self.compensation_error = None
+            self.last_command_error = None
+            self._writes_armed = True
+            self._source_write_pending = True
+        except DominusError as err:
+            self.restore_status = "blocked_uncertain_write" if isinstance(err, WriteUncertain) else "pending"
+            self.last_command_error = str(err)
+            self._writes_armed = False
+            if isinstance(err, WriteUncertain):
+                self._save_restore_choice({**choice, "blocked": True})
+            # Do not publish a pre-command snapshot after a partial change.
+            raise UpdateFailed("Saved control recovery failed: " + str(err)) from err
+        except asyncio.CancelledError:
+            self._writes_armed = False
+            self._save_restore_choice({**choice, "blocked": True})
+            raise
+        finally:
+            self.command_in_progress = None
+            self.async_update_listeners()
+        return snapshot
 
     def _calculate(self, snapshot, now, source_mode=None):
         values = snapshot.values
@@ -96,6 +224,11 @@ class DominusCoordinator(DataUpdateCoordinator):
             snapshot = await self.client.read_snapshot()
         except DominusError as err:
             raise UpdateFailed(str(err)) from err
+        # A poll failure callback marks recovery pending. Also detect a lost
+        # lease reported by an otherwise successful read (not only socket errors).
+        if self.restore_choice.get("owner") == "dominus" and not self.client.owns_control:
+            self._restore_pending = True
+        snapshot = await self._restore_saved_choice(snapshot)
         self._overlay_confirmed(snapshot)
         now = datetime.now(timezone.utc)
         status = self._calculate(snapshot, now)
@@ -126,6 +259,8 @@ class DominusCoordinator(DataUpdateCoordinator):
                         await self.client.command("room_target", candidate)
                     except DominusError as err:
                         self.compensation_error = str(err)  # Latch: never repeat on the next poll.
+                        if self.restore_choice.get("owner") == "dominus":
+                            self._save_restore_choice({**self.restore_choice, "blocked": True})
                         status = "blocked_after_error"
                     else:
                         self._source_write_pending = False
@@ -248,6 +383,11 @@ class DominusCoordinator(DataUpdateCoordinator):
     async def command(self, action, value=None):
         if self.command_in_progress is not None:
             raise HomeAssistantError("A control change is already in progress")
+        if action == "release" or (action == "panel_mode" and value == "local"):
+            # User cancellation wins even if the following device call fails.
+            self._save_restore_choice({"owner": "local"})
+            self._restore_pending = False
+            self.restore_status = "not_requested"
         self.command_in_progress = value if action == "panel_mode" else action
         self.async_update_listeners()
         try:
@@ -255,6 +395,7 @@ class DominusCoordinator(DataUpdateCoordinator):
                 confirmed = await self.client.set_panel_mode(value)
             else:
                 confirmed = await self.client.command(action, value)
+            self._remember_choice(action, value, confirmed)
             requested_mode = value if action == "panel_mode" else action
             pending = self.pending_dhw_target
             if requested_mode in {"summer", "winter"} and pending is not None:
@@ -264,6 +405,7 @@ class DominusCoordinator(DataUpdateCoordinator):
                     raise DominusError("Active mode was not confirmed; saved DHW not sent")
                 self._clear_pending_dhw()
                 confirmed = await self.client.command("dhw_target", pending)
+                self._remember_choice("dhw_target", pending, confirmed)
             self.last_command_error = None
             if action in {"take", "release", "panel_mode"}:
                 self.compensation_error = None
@@ -273,6 +415,8 @@ class DominusCoordinator(DataUpdateCoordinator):
         except DominusError as err:
             self.last_command_error = str(err)
             if isinstance(err, WriteUncertain):
+                if self.restore_choice.get("owner") == "dominus":
+                    self._save_restore_choice({**self.restore_choice, "blocked": True})
                 self.compensation_error = str(err)
                 self._writes_armed = False
             self._queue_command_refresh()  # Expose partial/uncertain outcomes, without delaying the error.

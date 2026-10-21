@@ -3,7 +3,8 @@
 [English](beta-draft.en.md) · [První zprovoznění](../getting-started.cs.md)
 
 **Pouze návrh ke schválení.** Nejde o zveřejněné vydání ani oznámení veřejné
-dostupnosti. Verze/tag a licence dosud nejsou určeny pro veřejnou betu.
+dostupnosti. Verze/tag veřejné bety dosud nejsou určeny. Licence: MIT,
+s úplným upstream oznámením v [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
 
 ## Určení
 
@@ -21,7 +22,12 @@ bezpečnostních funkcí kotle. Kompatibilita s dalšími instalacemi není potv
 - Vodní nastavení lze uložit i v OFF při vlastním HA řízení. TUV v OFF se uloží
   pouze v HA a uplatní až po další výslovné volbě Léto/Zima. Uložení ostatních
   možností integrace tento čekající cíl zachová.
-- Oprávnění jsou standardně vypnutá; při startu/reconnectu se nepřebírá řízení.
+- Oprávnění jsou standardně vypnutá. Nová potvrzená volba HA uloží záměr řízení;
+  po reconnectu/restartu se jej integrace pokusí obnovit včetně známých vodních cílů.
+  To může znovu spustit topení/TUV. Bez uložené volby se řízení nepřebírá.
+  Volba CAR obnovu zruší; cizí relace, aktivní místní CAR, časovač, chybějící
+  oprávnění nebo neplatné vstupy ji blokují. Nejistý zápis obnovu zablokuje
+  i přes restart až do kontroly stavu a nové vědomé volby uživatele.
 
 Léto dovoluje pouze TUV, Zima vytápění i TUV. Změna limitu sama nemění režim.
 CAR může v ověřeném zapojení při řízení HA zůstat lokálně OFF a poskytovat měření;

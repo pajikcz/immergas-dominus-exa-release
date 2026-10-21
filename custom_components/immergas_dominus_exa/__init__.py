@@ -1,4 +1,4 @@
-"""Immergas Dominus EXA. Setup and unload never send control commands."""
+"""Immergas Dominus EXA. Setup may restore saved HA intent; unload only closes I/O."""
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT
 from .client import DominusClient
 from .const import CONF_CONTROLS, CONF_GAS_DHW, CONF_MAC, CONF_COMPENSATION_WRITE, PLATFORMS, RUNTIME_OPTIONS

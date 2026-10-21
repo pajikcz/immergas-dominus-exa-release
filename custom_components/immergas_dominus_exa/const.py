@@ -13,7 +13,10 @@ DEFAULT_ROOM_SOURCE_MODE = "downstairs"
 CONF_ROOM_DESIRED = "desired_room_target"
 # Saved locally in OFF; consumed only by an explicit Summer/Winter selection.
 CONF_PENDING_DHW = "pending_dhw_target"
-RUNTIME_OPTIONS = frozenset({CONF_ROOM_DESIRED, CONF_ROOM_SOURCE_MODE, CONF_PENDING_DHW})
+# Confirmed user intent, not reported boiler state. Absent until a new HA choice.
+CONF_RESTORE_CONTROL = "restore_control"
+RUNTIME_OPTIONS = frozenset({CONF_ROOM_DESIRED, CONF_ROOM_SOURCE_MODE, CONF_PENDING_DHW,
+                             CONF_RESTORE_CONTROL})
 CONF_SOURCE_MAX_AGE = "room_source_max_age"
 DEFAULT_SOURCE_MAX_AGE = 1800
 CONF_COMPENSATION_WRITE = "allow_compensation_write"
