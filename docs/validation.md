@@ -1,7 +1,7 @@
 # Release candidate validation
 
 Validated on 2026-10-21, using the development v0.2.0 backend.
-This is an unpublished candidate, not a public release or certification.
+These checks underpin v0.2.0-beta.1; they are not a certification.
 
 - 96 offline unit tests passed; Python compilation passed.
 - A clean local installation of Home Assistant Core 2026.10.1 on Python 3.14

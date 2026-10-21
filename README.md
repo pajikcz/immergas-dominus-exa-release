@@ -3,8 +3,8 @@
 Unofficial Home Assistant integration for the **6-byte EXA protocol**, using an
 existing Dominus module and CAR controller. **Not compatible with the Magis Modbus map.**
 
-**Unpublished experimental release candidate.** Not distributed through HACS.
-MIT licensed; validation and final publication review remain required before a public beta release.
+**Experimental public beta: v0.2.0-beta.1.** For technically experienced testers.
+MIT licensed. Not listed in the HACS default catalog; manual installation is documented below.
 
 ## Features
 
@@ -59,7 +59,7 @@ The installation's private dashboard and visual configuration are not included.
 
 - [Configuration, controls and safety](docs/configuration.md)
 - [Validation results and scope](docs/validation.md)
-- **Unpublished beta draft**: [Česky](docs/releases/beta-draft.cs.md) · [English](docs/releases/beta-draft.en.md)
+- **v0.2.0-beta.1**: [Česky](docs/releases/v0.2.0-beta.1.cs.md) · [English](docs/releases/v0.2.0-beta.1.en.md)
 
 ## License and acknowledgements
 
