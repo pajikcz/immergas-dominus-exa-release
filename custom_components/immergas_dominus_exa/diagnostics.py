@@ -1,4 +1,4 @@
-"""Explicitly requested diagnostic export; no raw frames or identification."""
+"""Explicit diagnostic export; bounded read payloads, no identity or write frames."""
 from homeassistant.components.diagnostics import async_redact_data
 
 REDACT = {"host", "mac", "password", "serial_number", "unique_id", "room_temperature_source", "upstairs_temperature_source"}
@@ -11,6 +11,7 @@ async def async_get_config_entry_diagnostics(hass, entry):
             "options": async_redact_data(dict(entry.options), REDACT),
             "last_compensation_error": coordinator.compensation_error,
             "readings": dict(data.values) if data else {},
+            "read_payloads": coordinator.client.read_payloads,
             "observed_at": {k: v.isoformat() for k, v in data.observed.items()} if data else {},
             "last_update_success": coordinator.last_update_success,
             "last_command_error": coordinator.last_command_error}

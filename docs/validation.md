@@ -1,29 +1,51 @@
 # Release candidate validation
 
-Validated on 2026-10-21, using the development v0.2.0 backend.
-These checks underpin v0.2.0-beta.1; they are not a certification.
+## v0.2.0-beta.2 candidate — 2026-11-09
 
-- 96 offline unit tests passed; Python compilation passed.
-- A clean local installation of Home Assistant Core 2026.10.1 on Python 3.14
-  loaded this integration in a fresh temporary configuration directory.
-- The real HA config flow created the entry using a synthetic device probe;
-  all 36 integration entities loaded. The options form and its schema
-  serialization succeeded. Control and gas-DHW permissions defaulted to disabled.
-  Integration unload succeeded.
-- Device probe and telemetry were simulated; device commands and outbound socket
-  connections were blocked. No production HA or physical boiler was contacted.
-  This verifies real HA integration loading, not live device interoperability,
-  real browser interaction, HACS installation or physical recovery after outages.
-- Hassfest and HACS Action have not been run. Long-term and physical outage
-  behavior remains subject to the limitations in the configuration guide.
+Prepared locally, not published. Backend and tests match development commit
+`991eb3ad2a52e6ab671f87fd2c8982c1e9a5861a`; only release manifest version and
+public documentation/issue URLs differ. No experimental local WIP was imported.
 
-[Configuration and safety](configuration.md) · [Beta notes](releases/beta-draft.en.md)
+- All **112 offline unit tests passed** (31.230 seconds, no skips).
+- In a fresh temporary HA Core **2026.10.4 / Python 3.14.7** configuration, the
+  real config flow created the entry, **34 entities** registered, the options
+  form and its defaults validated, and integration unload succeeded.
+- Both control and gas-DHW permissions were disabled by default.
+- The same smoke procedure also loaded **34 entities in v0.2.0-beta.1**. The
+  historical 36-entity count below is not a new candidate assertion; no entity
+  platform/source files changed between these two versions.
+- Device probe and telemetry were synthetic. Command methods and outbound
+  connect/connect_ex/sendto were blocked. No production HA or boiler was contacted.
+- Initial smoke-harness attempts needed a valid fixture MAC and HA registry
+  initialization; these harness corrections did not change integration code.
+
+These checks do **not** verify physical OFF, CAR selector position, hydraulic
+flow, real outage/failover behavior, a complete house clone, browser/HACS
+installation or long-term stability. Hassfest and HACS Actions have not run.
+The explicit OFF path is covered by synthetic protocol/readback and interruption
+regression tests, not new physical fault testing. No deployment was performed.
+
+[Candidate notes](releases/v0.2.0-beta.2.en.md) · [Configuration and safety](configuration.md)
+
+## Previous validation — v0.2.0-beta.1, 2026-10-21
+
+The original report recorded 96 passing offline tests and a clean HA Core
+2026.10.1 / Python 3.14 setup with synthetic probe/telemetry, config/options flow,
+36 entities and unload. Commands and outgoing connections were blocked.
+This is historical evidence, not a rerun of that environment or certification.
 
 ## Česky
 
-Dne 21. 10. 2026 prošlo 96 offline testů a kompilace. Čistý HA Core 2026.10.1
-(Python 3.14) načetl integraci přes skutečný konfigurační tok, 36 entit,
-formulář možností včetně serializace a následné odpojení. Ovládání i plynová
-TUV byly výchozně nepovolené. Zařízení bylo simulované; povely a odchozí sockety
-byly blokované. Nejde o fyzický test kotle, browser/HACS instalaci, Hassfest/HACS
-certifikaci ani potvrzení chování při skutečném výpadku.
+Kandidát beta.2 není zveřejněný. Dne 9. 11. 2026 prošlo všech **112 offline testů**
+bez přeskočení a čistý **HA Core 2026.10.4 / Python 3.14.7**: skutečný konfigurační
+tok, **34 entit**, formulář možností s ověřenými výchozími hodnotami a odpojení.
+Ovládání i plynová TUV byly výchozně zakázané. Stejný postup vytvořil 34 entit i
+z původní beta.1; historický údaj 36 se na nový test nepřenáší. Před úspěšným
+během bylo nutné opravit testovací MAC a inicializaci HA registrů v harnessu,
+ne integraci.
+
+Zařízení bylo simulované, povely i odchozí síť blokované. Nejde o fyzické ověření
+vypnutí kotle, polohy CAR, průtoku nebo zotavení při výpadku, úplný klon domu,
+browser/HACS instalaci ani Hassfest/HACS certifikaci. Produkce se neměnila.
+
+[České poznámky kandidáta](releases/v0.2.0-beta.2.cs.md)

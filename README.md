@@ -3,7 +3,8 @@
 Unofficial Home Assistant integration for the **6-byte EXA protocol**, using an
 existing Dominus module and CAR controller. **Not compatible with the Magis Modbus map.**
 
-**Experimental public beta: v0.2.0-beta.1.** For technically experienced testers.
+**Preparation branch: v0.2.0-beta.2 candidate — not published.**
+Latest published experimental beta: **v0.2.0-beta.1**. For technically experienced testers.
 MIT licensed. Not listed in the HACS default catalog; manual installation is documented below.
 
 ## Features
@@ -13,7 +14,8 @@ MIT licensed. Not listed in the HACS default catalog; manual installation is doc
 - Explicit CAR / HA ownership and OFF / Summer / Winter controls.
 - Shared room target using the temperature reported by CAR.
 - Adjustable heating-water maximum and DHW target in every HA operating mode.
-- English/Czech entity labels and redacted diagnostics.
+- English/Czech entity labels and redacted diagnostics, including bounded recent
+  read-response payloads. Diagnostics still contain telemetry; review before sharing.
 
 ## Dashboard preview
 
@@ -46,6 +48,9 @@ The installation's private dashboard and visual configuration are not included.
 - A new explicit HA choice is remembered and [restored after reconnect/restart](docs/configuration.md#remembering-the-last-ha--car-choice),
   subject to fresh safety checks. Selecting CAR cancels recovery. Restoration can
   start heating/DHW; foreign sessions, active local CAR and uncertain writes block it.
+  A deliberate OFF request can acquire known local control to shut down, with fresh
+  authorization checks and independent ownership/OFF readbacks. This exception is
+  not automatic recovery and does not bypass timers or a foreign session.
   Invalid inputs stop further control writes, **not necessarily the boiler**.
   This integration is not a safety interlock or a guaranteed fallback controller.
 - Room compensation requires the existing native room sensor and modulation to
@@ -59,6 +64,7 @@ The installation's private dashboard and visual configuration are not included.
 
 - [Configuration, controls and safety](docs/configuration.md)
 - [Validation results and scope](docs/validation.md)
+- **v0.2.0-beta.2 candidate (unpublished)**: [Česky](docs/releases/v0.2.0-beta.2.cs.md) · [English](docs/releases/v0.2.0-beta.2.en.md)
 - **v0.2.0-beta.1**: [Česky](docs/releases/v0.2.0-beta.1.cs.md) · [English](docs/releases/v0.2.0-beta.1.en.md)
 
 ## License and acknowledgements

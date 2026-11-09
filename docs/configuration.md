@@ -28,9 +28,15 @@ is `2 × polling interval + 30 seconds`. Missing or invalid data is not replaced
 
 ## Ownership and operating modes
 
-Select **HA control in OFF** before enabling a mode. An active foreign session is
-not adopted. Selecting CAR through the panel first sends OFF, then releases control;
-it does not restore a previous CAR program.
+Select **HA control in OFF** before enabling a mode. A deliberate OFF request can
+acquire known local control and immediately send OFF, independently confirming both
+ownership and OFF. A reported Summer/Winter mode is not the physical CAR selector
+position and does not prevent this explicit shutdown. Timed control, unknown modes
+and foreign HA ownership remain blocked. The operation never enables a gas mode,
+blindly retries, or runs as automatic startup/reconnect recovery.
+
+An active foreign session is not adopted. Selecting CAR through the panel first
+sends OFF, then releases control; it does not restore a previous CAR program.
 
 | Mode | Permitted operation |
 | --- | --- |
@@ -65,7 +71,7 @@ value is fabricated as a readback. The compensation/measurement sensor attribute
 
 Recovery is attempted at polling cadence, not in a tight retry loop. It waits when
 controls/gas permission is missing, a timer is active, another client owns control,
-local CAR is in an active mode, or required temperature input is invalid. It never
+the boiler reports an active mode under local control, or required temperature input is invalid. It never
 forces local CAR to OFF or steals another session. An uncertain restoration write
 or cancellation persistently blocks automatic recovery, including after restart;
 inspect the actual state and make a new deliberate ownership/panel choice.

@@ -73,6 +73,7 @@ class DominusCoordinator(DataUpdateCoordinator):
         else:
             return
         choice.pop("blocked", None)
+        choice.pop("stop_requested", None)
         self._save_restore_choice(choice)
         self._restore_pending = False
         self.restore_status = "restored"
@@ -91,7 +92,7 @@ class DominusCoordinator(DataUpdateCoordinator):
         self.restore_status = "pending"
         mode = choice.get("mode")
         if choice.get("blocked"):
-            self.restore_status = "blocked_uncertain_write"
+            self.restore_status = "blocked_stop_requested" if choice.get("stop_requested") else "blocked_uncertain_write"
             return snapshot
         if not self.client.allow_controls or not self.entry.options.get(CONF_CONTROLS, False):
             self.restore_status = "controls_disabled"
@@ -383,6 +384,12 @@ class DominusCoordinator(DataUpdateCoordinator):
     async def command(self, action, value=None):
         if self.command_in_progress is not None:
             raise HomeAssistantError("A control change is already in progress")
+        if action == "off" or (action == "panel_mode" and value == "off"):
+            # Cancel old ON recovery before I/O; never claim the boiler is OFF.
+            self._save_restore_choice({**self.restore_choice, "blocked": True, "stop_requested": True})
+            self._restore_pending = False
+            self.restore_status = "blocked_stop_requested"
+            self._writes_armed = False
         if action == "release" or (action == "panel_mode" and value == "local"):
             # User cancellation wins even if the following device call fails.
             self._save_restore_choice({"owner": "local"})
@@ -390,12 +397,19 @@ class DominusCoordinator(DataUpdateCoordinator):
             self.restore_status = "not_requested"
         self.command_in_progress = value if action == "panel_mode" else action
         self.async_update_listeners()
+        remember_action, remember_value = action, value
         try:
-            if action == "panel_mode":
+            if (action == "off" or (action == "panel_mode" and value == "off")) and not self.client.owns_control:
+                # An accepted OFF request may stop local control deliberately.
+                # No selector-position inference and no startup/recovery takeover.
+                confirmed = await self.client.command(
+                    "take_off", lambda: self.command_in_progress == "off")
+                remember_action, remember_value = "panel_mode", "off"
+            elif action == "panel_mode":
                 confirmed = await self.client.set_panel_mode(value)
             else:
                 confirmed = await self.client.command(action, value)
-            self._remember_choice(action, value, confirmed)
+            self._remember_choice(remember_action, remember_value, confirmed)
             requested_mode = value if action == "panel_mode" else action
             pending = self.pending_dhw_target
             if requested_mode in {"summer", "winter"} and pending is not None:

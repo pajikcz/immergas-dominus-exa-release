@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -117,6 +117,12 @@ class DominusClient:
         self.require_native_room = require_native_room
         self.persistent_readonly = persistent_readonly
         self._request_label = None
+        self._read_payloads = {}
+
+    @property
+    def read_payloads(self):
+        """Latest validated read payload per supported key; no identity or writes."""
+        return {key: dict(value) for key, value in self._read_payloads.items()}
 
     @property
     def owns_control(self):
@@ -230,7 +236,13 @@ class DominusClient:
     async def _read(self, channel, register, selector=0):
         if (register, selector) not in READS + NATIVE_ROOM_READS:
             raise ControlError("Read outside the supported EXA selection")
-        values = decode(await self._exchange(channel, _frame(0, register, selector)), register, selector)
+        reply = await self._exchange(channel, _frame(0, register, selector))
+        values = decode(reply, register, selector)
+        if values:
+            self._read_payloads[f"{register}:{selector}"] = {
+                "hb": reply[2], "lb": reply[3],
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+            }
         if register == 89 and selector == 0 and values.get("dominus_active") is False:
             self._owns_lease = False
         return values
@@ -284,22 +296,31 @@ class DominusClient:
             raise ControlError("Controls are disabled in integration options")
         if option in {"summer", "winter"} and not self.allow_gas_dhw:
             raise ControlError("Summer/Winter enable gas DHW; explicit permission is required")
-        if option == "local":
-            if self.owns_control:
-                await self.command("off")
-            return await self.command("release")
-        else:
+        # Decide ownership only after pending reads finish. Keep the same lock
+        # through takeover and mode selection: a poll must not revoke the lease
+        # between that decision and the write. Never retry a failed write.
+        async with self._lock:
+            if option == "local":
+                if self.owns_control:
+                    await self._command("off", None, nullcontext())
+                return await self._command("release", None, nullcontext())
             if not self.owns_control:
-                await self.command("take")  # Fresh OFF required; foreign leases are never stolen.
-            return await self.command(option)
+                await self._command("take", None, nullcontext())  # Fresh OFF; no foreign lease.
+            return await self._command(option, None, nullcontext())
 
     async def command(self, action, value=None):
         """Explicit supported operations; no generic, timer or reset writes."""
+        return await self._command(action, value, self._lock)
+
+    async def _command(self, action, value, lock):
+        """Run a guarded command; panel sequences already hold the I/O lock."""
         if not self.allow_controls:
             raise ControlError("Controls are disabled in integration options")
+        if action == "take_off" and not callable(value):
+            raise ControlError("Local shutdown requires an explicit live authorization guard")
         if action == "antifreeze":
             raise ControlError("Antifreeze is not commissioned: no verified EXA command; OFF is not a substitute")
-        if action not in {"take", "release", "off", "summer", "winter", "max_flow", "room_target", "dhw_target"}:
+        if action not in {"take", "take_off", "release", "off", "summer", "winter", "max_flow", "room_target", "dhw_target"}:
             raise ControlError("Unsupported control")
         if action in {"summer", "winter", "dhw_target"} and not self.allow_gas_dhw:
             raise ControlError("Summer/Winter enable gas DHW; explicit permission is required")
@@ -310,7 +331,7 @@ class DominusClient:
         if action == "room_target" and (type(value) not in (int, float) or not math.isfinite(value)
                                         or not 5 <= value <= 35):
             raise ControlError("Room target must be finite and within the integration policy5–35°C")
-        async with self._lock:
+        async with lock:
             async with self._session() as channel:
                 state, observed = {}, {}
                 for register, selector in ((0, 0), (89, 0), (89, 1)):
@@ -320,10 +341,15 @@ class DominusClient:
                 if not {"mode", "dominus_active", "control_timer"} <= state.keys() or state["control_timer"]:
                     raise ControlError("Fresh state is missing or timed control is active")
                 owned = state["dominus_active"]
-                if action in {"take", "release"}:
-                    if state["mode"] != "off":
+                if action in {"take", "take_off", "release"}:
+                    if action == "take_off":
+                        if value() is not True:
+                            raise ControlError("Local shutdown authorization no longer matches")
+                        if state["mode"] not in {"off", "summer", "winter"} or owned:
+                            raise ControlError("Local shutdown requires a known local mode; no foreign lease")
+                    elif state["mode"] != "off":
                         raise ControlError("Select OFF before changing control owner")
-                    desired = action == "take"
+                    desired = action in {"take", "take_off"}
                     if owned and not self._owns_lease:
                         raise ControlError("Dominus is already active outside this client; do not steal its lease")
                     if owned == desired:
@@ -365,24 +391,38 @@ class DominusClient:
                                 raise ControlError("Compensation requires enabled native room control before Winter; no settings were changed")
                         target, read_id, selector, key, expected = (0, {"off": 0, "summer": 2, "winter": 3}[action], 0), 0, 0, "mode", action
                 try:
-                    reply = await self._exchange(channel, _frame(1, *target))
-                    # Validate checksum/header without accepting an echo as proof.
-                    if (len(reply) != 6 or reply[1] != target[0] or reply[0] & 15
-                            or crc(reply[:4]) != int.from_bytes(reply[4:], "big")
-                            or sum(b.bit_count() for b in reply[:4]) % 2
-                            or (reply[0] >> 4) & 7 not in (1, 5)):
-                        raise DominusError("Write response invalid")
-                    actual = await self._read(channel, read_id, selector)
-                    if key not in actual or actual[key] != expected:
-                        raise DominusError("Independent write readback did not match")
-                    state.update(actual)
-                    observed.update(dict.fromkeys(actual, datetime.now(timezone.utc)))
-                    if action == "take":
+                    steps = [(target, read_id, selector, key, expected)]
+                    if action == "take_off":
+                        # Explicit guarded shutdown only: acquire, confirm, OFF,
+                        # confirm. Never enable a gas mode or retry either write.
+                        steps.append(((0, 0, 0), 0, 0, "mode", "off"))
+                    for target, read_id, selector, key, expected in steps:
+                        if action == "take_off" and value() is not True:
+                            raise ControlError("Local shutdown authorization no longer matches")
+                        reply = await self._exchange(channel, _frame(1, *target))
+                        # Validate checksum/header without accepting an echo as proof.
+                        if (len(reply) != 6 or reply[1] != target[0] or reply[0] & 15
+                                or crc(reply[:4]) != int.from_bytes(reply[4:], "big")
+                                or sum(b.bit_count() for b in reply[:4]) % 2
+                                or (reply[0] >> 4) & 7 not in (1, 5)):
+                            raise DominusError("Write response invalid")
+                        actual = await self._read(channel, read_id, selector)
+                        if key not in actual or actual[key] != expected:
+                            raise DominusError("Independent write readback did not match")
+                        state.update(actual)
+                        observed.update(dict.fromkeys(actual, datetime.now(timezone.utc)))
+                    if action in {"take", "take_off"}:
                         actual = await self._read(channel, 0)
                         if actual.get("mode") != "off":
                             raise DominusError("Unexpected mode after takeover")
                         state.update(actual)
                         observed.update(dict.fromkeys(actual, datetime.now(timezone.utc)))
+                        if action == "take_off":
+                            actual = await self._read(channel, 89, 0)
+                            if actual.get("dominus_active") is not True:
+                                raise DominusError("HA ownership lost during local shutdown")
+                            state.update(actual)
+                            observed.update(dict.fromkeys(actual, datetime.now(timezone.utc)))
                         self._owns_lease = True
                     # Only independently read values, never the requested state or ACK echo.
                     return Snapshot(state, observed)
